@@ -94,3 +94,20 @@ export const getCategoryTimes = (events: Event[]) => {
   });
   return sums;
 };
+
+export const getDaySums = (events: Event[]) => {
+  const eventsWithCategory = events.filter(
+    event => event.categories.length > 0
+  );
+
+  return range(1, 6).map((number: Number) => {
+    return {
+      number,
+      hours: sumDuration(
+        eventsWithCategory.filter(
+          event => moment(event.start.dateTime).isoWeekday() === number
+        )
+      )
+    };
+  });
+};
