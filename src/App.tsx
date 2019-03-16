@@ -7,6 +7,8 @@ import {
   duration,
   sumDuration
 } from "./calendar";
+import { sum, range } from "lodash";
+import moment from "moment";
 
 interface State {
   events: Event[];
@@ -26,16 +28,6 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <p>Event Count: {this.state.events && this.state.events.length}</p>
-        <table>
-          {this.state.events &&
-            getCategoryTimes(this.state.events).map(data => (
-              <tr>
-                <td>{data.category}</td>
-                <td>{data.hours} hours</td>
-              </tr>
-            ))}
-        </table>
         <p>
           Total Categorized Hours (excludes "None"):{" "}
           {sumDuration(
@@ -43,13 +35,36 @@ class App extends Component {
           )}
         </p>
         <table>
-          {this.state.events.map(event => (
-            <tr key={(event as any)["@odata.etag"]}>
-              <td>{event.subject}</td>
-              <td>{duration(event)}</td>
+          <tr>
+            <th>Category</th>
+            <th>M</th>
+            <th>T</th>
+            <th>W</th>
+            <th>R</th>
+            <th>F</th>
+            <th>Sum</th>
+          </tr>
+          {getCategoryTimes(this.state.events).map(data => (
+            <tr>
+              <td>{data.category}</td>
+              {data.hoursByDay.map((day: any) => (
+                <td>{day.hours}</td>
+              ))}
+              <td>{sum(data.hoursByDay.map((day: any) => day.hours))}</td>
             </tr>
           ))}
         </table>
+        {range(0, 6).map(number =>
+          this.state.events
+            .filter(
+              event => moment(event.start.dateTime).isoWeekday() === number
+            )
+            .map(event => (
+              <li>
+                {number}: {event.subject}
+              </li>
+            ))
+        )}
       </div>
     );
   }

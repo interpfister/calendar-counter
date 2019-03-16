@@ -1,6 +1,6 @@
 import { getUrl } from "./api";
 import moment from "moment";
-import { sum, uniq } from "lodash";
+import { sum, uniq, range } from "lodash";
 
 interface DateTime {
   dateTime: string;
@@ -22,12 +22,15 @@ const getStartDate = () => {
 
   if (currentDayNumber < 6) {
     // if it's still the current workweek, start on Monday
-    return moment().isoWeekday(weekStartDay);
+    return moment()
+      .isoWeekday(weekStartDay)
+      .startOf("day");
   } else {
     // otherwise, give me *next week's* instance of that same day
     return moment()
       .add(1, "weeks")
-      .isoWeekday(weekStartDay);
+      .isoWeekday(weekStartDay)
+      .startOf("day");
   }
 };
 
@@ -35,7 +38,7 @@ export const getEvents = async () => {
   const startDate = getStartDate();
   const events = (await getUrl(
     `https://graph.microsoft.com/v1.0/me/calendarview?$top=200&startdatetime=${startDate.toISOString()}&enddatetime=${startDate
-      .add(4, "days")
+      .add(5, "days") //add five days to capture through midnight Friday
       .toISOString()}`
   )) as Event[];
   const filteredEvents = events.filter(event => !event.isAllDay);
@@ -73,10 +76,20 @@ export const getCategoryTimes = (events: Event[]) => {
         ? event.categories.length <= 0
         : event.categories[0] === category
     );
-    const hours = sumDuration(categoryEvents);
+    const hoursByDay = range(1, 6).map((number: Number) => {
+      return {
+        number,
+        hours: sumDuration(
+          categoryEvents.filter(
+            event => moment(event.start.dateTime).isoWeekday() === number
+          )
+        )
+      };
+    });
+
     return {
       category,
-      hours
+      hoursByDay
     };
   });
   return sums;
