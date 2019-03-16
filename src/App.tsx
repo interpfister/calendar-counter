@@ -19,33 +19,37 @@ interface State extends EventsProps {}
 
 const CategoryTable = (props: EventsProps) => (
   <table>
-    <tr>
-      <th>Category</th>
-      <th>M</th>
-      <th>T</th>
-      <th>W</th>
-      <th>R</th>
-      <th>F</th>
-      <th>Sum</th>
-    </tr>
-    {getCategoryTimes(props.events).map(data => (
+    <tbody>
       <tr>
-        <td>{data.category}</td>
-        {data.hoursByDay.map((day: any) => (
-          <td>{day.hours}</td>
-        ))}
-        <td>{sum(data.hoursByDay.map((day: any) => day.hours))}</td>
+        <th>Category</th>
+        <th>M</th>
+        <th>T</th>
+        <th>W</th>
+        <th>R</th>
+        <th>F</th>
+        <th>Sum</th>
       </tr>
-    ))}
-    <tr>
-      <td>Total</td>
-      {getDaySums(props.events).map((day: any) => (
-        <td>{day.hours}</td>
+      {getCategoryTimes(props.events).map(data => (
+        <tr key={data.category}>
+          <td>{data.category}</td>
+          {data.hoursByDay.map((day: any, index: number) => (
+            <td key={index}>{day.hours}</td>
+          ))}
+          <td>{sum(data.hoursByDay.map((day: any) => day.hours))}</td>
+        </tr>
       ))}
-      <td>
-        {sumDuration(props.events.filter(event => event.categories.length > 0))}
-      </td>
-    </tr>
+      <tr>
+        <td>Total excluding 'None'</td>
+        {getDaySums(props.events).map((day: any, index: number) => (
+          <td key={index}>{day.hours}</td>
+        ))}
+        <td>
+          {sumDuration(
+            props.events.filter(event => event.categories.length > 0)
+          )}
+        </td>
+      </tr>
+    </tbody>
   </table>
 );
 
@@ -56,6 +60,18 @@ const TableWithTotal = (props: EventsProps) => (
       {sumDuration(props.events.filter(event => event.categories.length > 0))}
     </p>
     <CategoryTable events={props.events} />
+  </div>
+);
+
+interface TableWithHeaderProps extends EventsProps {
+  header: string;
+}
+
+const TableWithHeader = (props: TableWithHeaderProps) => (
+  <div>
+    <h3>{props.header}:</h3>
+    <TableWithTotal events={props.events} />
+    <hr />
   </div>
 );
 
@@ -74,14 +90,17 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <h3>All Hours:</h3>
-        <TableWithTotal events={this.state.events} />
-        <hr />
-        <h3>Total Free Time</h3>
-        <TableWithTotal
+        <TableWithHeader header="Totat Time" events={this.state.events} />
+        <TableWithHeader
+          header="Total Free Time"
           events={this.state.events.filter(event => event.showAs !== "busy")}
         />
-        <hr />
+        <TableWithHeader
+          header="Total Free Time Remaining"
+          events={this.state.events
+            .filter(event => event.showAs !== "busy")
+            .filter(event => moment(event.start.dateTime).isAfter(moment()))}
+        />
         <div>
           <h3>Events used in analysis:</h3>
           {range(0, 6).map(number =>
@@ -89,8 +108,8 @@ class App extends Component {
               .filter(
                 event => moment(event.start.dateTime).isoWeekday() === number
               )
-              .map(event => (
-                <li>
+              .map((event, index) => (
+                <li key={index}>
                   {number}: {event.subject}
                 </li>
               ))
