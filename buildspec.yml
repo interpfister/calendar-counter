@@ -15,9 +15,9 @@ phases:
       - echo Compiling the Node.js code
       - yarn build
       - echo Copying files to s3
-      - aws s3 sync ./public s3://calendarcounter.ryanpfister.com/ --delete --acl public-read --metadata-directive REPLACE --cache-control max-age=2592000,public
+      - aws s3 sync ./build s3://calendarcounter.ryanpfister.com/ --delete --acl public-read --metadata-directive REPLACE --cache-control max-age=2592000,public
       - echo Copying .html to s3 separately to set 0 max-age
-      - aws s3 cp ./public s3://calendarcounter.ryanpfister.com/ --recursive --exclude "*" --include "*.html" --acl public-read --metadata-directive REPLACE --cache-control max-age=0,public
+      - aws s3 cp ./build s3://calendarcounter.ryanpfister.com/ --recursive --exclude "*" --include "*.html" --acl public-read --metadata-directive REPLACE --cache-control max-age=0,public
   post_build:
     commands:
       - echo Build completed on `date`
