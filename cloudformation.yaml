@@ -1,0 +1,148 @@
+# From https://github.com/sjevs/cloudformation-s3-static-website-with-cloudfront-and-route-53/blob/master/s3-static-website-with-cloudfront-and-route-53.yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates an S3 bucket configured for hosting a static website
+Parameters:
+  FullDomainName:
+    Type: String
+    Description: The DNS name of an existing Amazon Route 53 hosted zone e.g. jevsejev.io
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+    Default: calendarcounter.ryanpfister.com
+  DomainName:
+    Type: String
+    Description: The hosted zone to create the new CNAME in
+    AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<!-)
+    ConstraintDescription: must be a valid DNS zone name.
+    Default: ryanpfister.com
+  CodeBuildProjectName:
+    Type: String
+    Description: Name for CodeBuild project
+    Default: calendarcounter
+  SourceControlUrl:
+    Type: String
+    Description: Source Control URL
+    Default: https://github.com/interpfister/calendar-counter.git
+  AcmCertificateArn:
+    Type: String
+    Description: the Amazon Resource Name (ARN) of an AWS Certificate Manager (ACM) certificate.
+    AllowedPattern: "arn:aws:acm:.*"
+    Default: arn:aws:acm:us-east-1:446645498137:certificate/85c6ad16-c48a-4cac-b895-4a5942469e8f
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref "FullDomainName"
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: 404.html
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref "WebsiteBucket"
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref "WebsiteBucket", /*]]
+
+  WebsiteCloudfront:
+    DeletionPolicy: Retain # Setting to retain because it takes 10+ minutes to delete - just delete manually if you really need to
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - WebsiteBucket
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront Distribution pointing to S3 bucket
+        Origins:
+          - DomainName:
+              !Select [2, !Split ["/", !GetAtt WebsiteBucket.WebsiteURL]]
+            Id: S3Origin
+            CustomOriginConfig:
+              HTTPPort: "80"
+              HTTPSPort: "443"
+              OriginProtocolPolicy: http-only
+        Enabled: true
+        HttpVersion: "http2"
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref "FullDomainName"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: true
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertificateArn
+          SslSupportMethod: sni-only
+
+  # Lesson learned that this apparently creates a separate hosted zone from the existing one, so don't use.
+  #WebsiteHostedZone:
+  #  Type: "AWS::Route53::HostedZone"
+  #  Properties:
+  #    Name: !Ref DomainName
+
+  #WebsiteDNS:
+  #  Type: AWS::Route53::RecordSetGroup
+  #  Properties:
+  #    HostedZoneName: !Join ["", [!Ref "DomainName", .]]
+  #    RecordSets:
+  #      - Name: !Ref "FullDomainName"
+  #        Type: CNAME
+  #        TTL: "3600"
+  #        ResourceRecords: [!GetAtt [WebsiteCloudfront, DomainName]]
+
+  #---CloudBuild and related roles/policies---
+  Project:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref "CodeBuildProjectName"
+      Description: !Sub
+        - "S3 Deployment of {FullDomainName}"
+        - Domain: !Ref "FullDomainName"
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: no_artifacts
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/nodejs:10.1.0
+      Source:
+        Type: GITHUB
+        Location: !Ref SourceControlUrl
+      TimeoutInMinutes: 10
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: ["sts:AssumeRole"]
+            Effect: Allow
+            Principal:
+              Service: [codebuild.amazonaws.com]
+        Version: "2012-10-17"
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - "logs:*"
+                  - "s3:*"
+                Effect: Allow
+                Resource: "*"
+Outputs:
+  BucketName:
+    Value: !Ref "WebsiteBucket"
+    Description: Name of S3 bucket to hold website content

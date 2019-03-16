@@ -20,7 +20,12 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "validate-template": "aws cloudformation validate-template --template-body file://cloudformation.yaml",
+    "delete-stack": "aws cloudformation delete-stack --stack-name calendar-counter && aws cloudformation wait stack-delete-complete --stack-name calendar-counter",
+    "create-stack": "aws cloudformation create-stack --stack-name calendar-counter --template-body file://cloudformation.yaml --capabilities CAPABILITY_IAM && aws cloudformation wait stack-create-complete --stack-name calendar-counter",
+    "refresh-stack": "yarn delete-stack && yarn create-stack",
+    "update-stack": "aws cloudformation update-stack --stack-name calendar-counter --template-body file://cloudformation.yaml --capabilities CAPABILITY_IAM && aws cloudformation wait stack-update-complete --stack-name calendar-counter"
   },
   "eslintConfig": {
     "extends": "react-app"
