@@ -90,7 +90,7 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <TableWithHeader header="Totat Time" events={this.state.events} />
+        <TableWithHeader header="Total Time" events={this.state.events} />
         <TableWithHeader
           header="Total Free Time"
           events={this.state.events.filter(event => event.showAs !== "busy")}
