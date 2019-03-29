@@ -22,7 +22,11 @@ export const getUrl = (url: string) => {
     var userAgentApplication = new UserAgentApplication(
       applicationConfig.clientID,
       null,
-      tokenReceivedCallback
+      tokenReceivedCallback,
+      {
+        cacheLocation: "localStorage",
+        navigateToLoginRequestUrl: false
+      }
     );
 
     const testAPI = (token: string) => {
@@ -50,15 +54,7 @@ export const getUrl = (url: string) => {
         },
         function(error) {
           //AcquireTokenSilent Failure, send an interactive request.
-          userAgentApplication.acquireTokenPopup(graphScopes).then(
-            function(accessToken) {
-              console.log("API authentication success");
-              testAPI(accessToken);
-            },
-            function(error) {
-              reject(error);
-            }
-          );
+          userAgentApplication.acquireTokenRedirect(graphScopes);
         }
       );
     };
@@ -67,13 +63,7 @@ export const getUrl = (url: string) => {
     if (user) {
       acquireAccessForId(user.userIdentifier);
     } else {
-      userAgentApplication
-        .loginPopup(graphScopes)
-        .then(acquireAccessForId)
-        .catch(function(error) {
-          //login failure
-          reject(error);
-        });
+      userAgentApplication.loginRedirect(graphScopes);
     }
   });
 };
