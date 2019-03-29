@@ -53,16 +53,6 @@ const CategoryTable = (props: EventsProps) => (
   </table>
 );
 
-const TableWithTotal = (props: EventsProps) => (
-  <div>
-    <p>
-      Total Categorized Hours (excludes "None"):{" "}
-      {sumDuration(props.events.filter(event => event.categories.length > 0))}
-    </p>
-    <CategoryTable events={props.events} />
-  </div>
-);
-
 interface TableWithHeaderProps extends EventsProps {
   header: string;
 }
@@ -70,7 +60,7 @@ interface TableWithHeaderProps extends EventsProps {
 const TableWithHeader = (props: TableWithHeaderProps) => (
   <div>
     <h3>{props.header}:</h3>
-    <TableWithTotal events={props.events} />
+    <CategoryTable events={props.events} />
     <hr />
   </div>
 );

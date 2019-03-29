@@ -56,19 +56,11 @@ export const duration = (event: Event) => {
 
 export const sumDuration = (events: Event[]) => sum(events.map(duration));
 
-export const freeTimeRemaining = (events: Event[]) => {
-  const busyEventsAfterNow = events
-    .filter(event => event.showAs === "busy")
-    .filter(event => moment(event.start.dateTime).isAfter(moment()));
-  const remainingBusyTime = sumDuration(busyEventsAfterNow);
-  //const totalTimeRemaining =
-};
-
 export const getCategoryTimes = (events: Event[]) => {
   const categories: string[] = uniq(
-    events.map(event =>
-      event.categories.length > 0 ? event.categories[0] : "None"
-    )
+    events
+      .filter(event => event.categories.length > 0)
+      .map(event => event.categories[0])
   );
   const sums = categories.map(category => {
     const categoryEvents = events.filter(event =>
