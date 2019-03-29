@@ -4,7 +4,6 @@ import {
   getEvents,
   getCategoryTimes,
   Event,
-  duration,
   sumDuration,
   getDaySums
 } from "./calendar";
