@@ -32,7 +32,6 @@ export const getEvents = async (weeksToAdd: number) => {
       .toISOString()}`
   )) as Event[];
   const filteredEvents = events.filter(event => !event.isAllDay);
-  console.log(filteredEvents);
   return filteredEvents;
 };
 
@@ -63,7 +62,10 @@ export const getCategoryTimes = (events: Event[]) => {
         number,
         hours: sumDuration(
           categoryEvents.filter(
-            event => moment(event.start.dateTime).isoWeekday() === number
+            event =>
+              moment(event.start.dateTime)
+                .add(moment().utcOffset(), "minutes") //Adjust to browser local timezone
+                .isoWeekday() === number
           )
         )
       };
