@@ -5,7 +5,8 @@ import {
   getCategoryTimes,
   Event,
   sumDuration,
-  getDaySums
+  getDaySums,
+  getStartDate
 } from "./calendar";
 import { sum, range } from "lodash";
 import moment from "moment";
@@ -14,7 +15,10 @@ interface EventsProps {
   events: Event[];
 }
 
-interface State extends EventsProps {}
+interface State extends EventsProps {
+  weeksToAdd: number;
+  isLoading: boolean;
+}
 
 const CategoryTable = (props: EventsProps) => (
   <table>
@@ -64,46 +68,87 @@ const TableWithHeader = (props: TableWithHeaderProps) => (
   </div>
 );
 
+const EventsArea = (props: EventsProps) => (
+  <div>
+    <TableWithHeader header="Total Time" events={props.events} />
+    <TableWithHeader
+      header="Total Free Time"
+      events={props.events.filter(event => event.showAs !== "busy")}
+    />
+    <TableWithHeader
+      header="Total Free Time Remaining"
+      events={props.events
+        .filter(event => event.showAs !== "busy")
+        .filter(event => moment(event.start.dateTime).isAfter(moment()))}
+    />
+    <div>
+      <h3>Events used in analysis:</h3>
+      {range(0, 6).map(number =>
+        props.events
+          .filter(event => moment(event.start.dateTime).isoWeekday() === number)
+          .map((event, index) => (
+            <li key={index}>
+              {number}: {event.subject}
+            </li>
+          ))
+      )}
+    </div>
+  </div>
+);
+
 class App extends Component {
   state: State = {
-    events: []
+    events: [],
+    weeksToAdd: 0,
+    isLoading: false
   };
 
+  async updateEvents() {
+    this.setState(
+      {
+        isLoading: true
+      },
+      async () => {
+        const events = await getEvents(this.state.weeksToAdd);
+        this.setState({
+          events,
+          isLoading: false
+        });
+      }
+    );
+  }
+
+  createUpdateWeekFunc(weeksToAdd: number) {
+    return () => {
+      const newWeeksToAdd = this.state.weeksToAdd + weeksToAdd;
+      this.setState(
+        {
+          weeksToAdd: newWeeksToAdd
+        },
+        this.updateEvents
+      );
+    };
+  }
+
   async componentDidMount() {
-    const events = await getEvents();
-    this.setState({
-      events
-    });
+    this.updateEvents();
   }
 
   render() {
     return (
       <div className="App">
-        <TableWithHeader header="Total Time" events={this.state.events} />
-        <TableWithHeader
-          header="Total Free Time"
-          events={this.state.events.filter(event => event.showAs !== "busy")}
-        />
-        <TableWithHeader
-          header="Total Free Time Remaining"
-          events={this.state.events
-            .filter(event => event.showAs !== "busy")
-            .filter(event => moment(event.start.dateTime).isAfter(moment()))}
-        />
+        <h1>
+          Week of {getStartDate(this.state.weeksToAdd).format("MM/DD/YYYY")}
+        </h1>
         <div>
-          <h3>Events used in analysis:</h3>
-          {range(0, 6).map(number =>
-            this.state.events
-              .filter(
-                event => moment(event.start.dateTime).isoWeekday() === number
-              )
-              .map((event, index) => (
-                <li key={index}>
-                  {number}: {event.subject}
-                </li>
-              ))
-          )}
+          <button onClick={this.createUpdateWeekFunc(-1)}>Prev</button>
+          <button onClick={this.createUpdateWeekFunc(1)}>Next</button>
         </div>
+        {!this.state.isLoading ? (
+          <EventsArea events={this.state.events} />
+        ) : (
+          <div>Loading...</div>
+        )}
       </div>
     );
   }

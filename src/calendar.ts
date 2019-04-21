@@ -16,26 +16,16 @@ export interface Event {
   end: DateTime;
 }
 
-const getStartDate = () => {
-  const currentDayNumber = moment().isoWeekday();
+export const getStartDate = (weeksToAdd: number) => {
   const weekStartDay = 1;
-
-  if (currentDayNumber < 6) {
-    // if it's still the current workweek, start on Monday
-    return moment()
-      .isoWeekday(weekStartDay)
-      .startOf("day");
-  } else {
-    // otherwise, give me *next week's* instance of that same day
-    return moment()
-      .add(1, "weeks")
-      .isoWeekday(weekStartDay)
-      .startOf("day");
-  }
+  return moment()
+    .add(weeksToAdd, "weeks")
+    .isoWeekday(weekStartDay)
+    .startOf("day");
 };
 
-export const getEvents = async () => {
-  const startDate = getStartDate();
+export const getEvents = async (weeksToAdd: number) => {
+  const startDate = getStartDate(weeksToAdd);
   const events = (await getUrl(
     `https://graph.microsoft.com/v1.0/me/calendarview?$top=200&startdatetime=${startDate.toISOString()}&enddatetime=${startDate
       .add(5, "days") //add five days to capture through midnight Friday
