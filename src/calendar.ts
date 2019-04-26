@@ -89,7 +89,10 @@ export const getDaySums = (events: Event[]) => {
       number,
       hours: sumDuration(
         eventsWithCategory.filter(
-          event => moment(event.start.dateTime).isoWeekday() === number
+          event =>
+            moment(event.start.dateTime)
+              .add(moment().utcOffset(), "minutes") //Adjust to browser local timezone.
+              .isoWeekday() === number
         )
       )
     };
